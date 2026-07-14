@@ -103,27 +103,27 @@ jobs:
         continue-on-error: true
         run: npm test
 
+      - name: Determine check results
+        id: determine-results
+        run: |
+          unit_tests=${{ steps.check_unit_tests.outcome == 'success' }}
+          integration_tests=${{ steps.check_integration_tests.outcome == 'success' }}
+          e2e_tests=${{ steps.check_e2e_tests.outcome == 'success' }}
+          run_tests=${{ steps.run_tests.outcome == 'success' }}
+          all_passed=${{ steps.check_unit_tests.outcome == 'success' && steps.check_integration_tests.outcome == 'success' && steps.check_e2e_tests.outcome == 'success' && steps.run_tests.outcome == 'success' }}
+          
+          echo "unit_tests=$unit_tests" >> $GITHUB_OUTPUT
+          echo "integration_tests=$integration_tests" >> $GITHUB_OUTPUT
+          echo "e2e_tests=$e2e_tests" >> $GITHUB_OUTPUT
+          echo "run_tests=$run_tests" >> $GITHUB_OUTPUT
+          echo "all_passed=$all_passed" >> $GITHUB_OUTPUT
+
       - name: Build message - step results
         id: build-message-step-results
         uses: skills/action-text-variables@v2
         with:
           template-file: exercise-toolkit/markdown-templates/step-feedback/step-results-table.md
-          template-vars: |
-            step_number: 2-6
-            passed: ${{ steps.check_unit_tests.outcome == 'success' && steps.check_integration_tests.outcome == 'success' && steps.check_e2e_tests.outcome == 'success' && steps.run_tests.outcome == 'success' }}
-            results_table:
-              - description: "Unit test files should exist (app.test.js in backend and App.test.js in frontend)."
-                passed: ${{ steps.check_unit_tests.outcome == 'success' }}
-                error_message: "Unit test files not found. Expected app.test.js in \`packages/backend/__tests__/\` and App.test.js in \`packages/frontend/src/__tests__/\`."
-              - description: "Integration tests should exist (*.test.js files in \`packages/backend/__tests__/integration/\`)."
-                passed: ${{ steps.check_integration_tests.outcome == 'success' }}
-                error_message: "Integration test files not found. Expected intelligently named *.test.js files in \`packages/backend/__tests__/integration/\`."
-              - description: "E2E tests should exist (*.spec.js files in tests/e2e/)."
-                passed: ${{ steps.check_e2e_tests.outcome == 'success' }}
-                error_message: "E2E test files not found. Expected intelligently named *.spec.js files in tests/e2e/."
-              - description: "Unit/Integration test suite should pass (npm test)."
-                passed: ${{ steps.run_tests.outcome == 'success' }}
-                error_message: "Test suite failed. Review failing tests and guidelines."
+          template-vars: '{"step_number": "2-6", "passed": ${{ steps.determine-results.outputs.all_passed }}, "results_table": [{"description": "Unit test files should exist (app.test.js in backend and App.test.js in frontend).", "passed": ${{ steps.determine-results.outputs.unit_tests }}, "error_message": "Unit test files not found. Expected app.test.js in `packages/backend/__tests__/` and App.test.js in `packages/frontend/src/__tests__/`."}, {"description": "Integration tests should exist (*.test.js files in `packages/backend/__tests__/integration/`).", "passed": ${{ steps.determine-results.outputs.integration_tests }}, "error_message": "Integration test files not found. Expected intelligently named *.test.js files in `packages/backend/__tests__/integration/`."}, {"description": "E2E tests should exist (*.spec.js files in tests/e2e/).", "passed": ${{ steps.determine-results.outputs.e2e_tests }}, "error_message": "E2E test files not found. Expected intelligently named *.spec.js files in tests/e2e/."}, {"description": "Unit/Integration test suite should pass (npm test).", "passed": ${{ steps.determine-results.outputs.run_tests }}, "error_message": "Test suite failed. Review failing tests and guidelines."}]}'
 
       - name: Create comment - step results
         run: |
