@@ -29,10 +29,20 @@ describe('API Endpoints', () => {
 
       const item = response.body[0];
       expect(item).toHaveProperty('id');
+      expect(typeof item.id).toBe('number');
+      expect(item.id).toBeGreaterThan(0);
+      
       expect(item).toHaveProperty('name');
+      expect(typeof item.name).toBe('string');
+      expect(item.name.length).toBeGreaterThan(0);
+      
       expect(item).toHaveProperty('created_at');
+      expect(new Date(item.created_at).toString()).not.toBe('Invalid Date');
+      
       expect(item).toHaveProperty('due_date');
+      
       expect(item).toHaveProperty('completed');
+      expect([0, 1]).toContain(item.completed);
     });
   });
 
@@ -59,6 +69,13 @@ describe('API Endpoints', () => {
 
       expect(response.status).toBe(201);
       expect(response.body.due_date).toBe('2099-12-31');
+      // Verify all required fields present and valid
+      expect(response.body).toHaveProperty('id');
+      expect(typeof response.body.id).toBe('number');
+      expect(response.body.name).toBe('Test With Due Date');
+      expect(response.body.completed).toBe(0);
+      expect(response.body).toHaveProperty('created_at');
+      expect(new Date(response.body.created_at).toString()).not.toBe('Invalid Date');
     });
 
     it('should return 400 if name is missing', async () => {
@@ -118,6 +135,11 @@ describe('API Endpoints', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.due_date).toBe('2099-06-15');
+      // Verify other fields unchanged
+      expect(response.body.name).toBe('Item For Due Date Update');
+      expect(response.body.completed).toBe(0);
+      expect(response.body.id).toBe(item.id);
+      expect(response.body.created_at).toBe(item.created_at);
     });
 
     it('should mark an item as completed', async () => {
@@ -130,6 +152,11 @@ describe('API Endpoints', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.completed).toBe(1);
+      // Verify other fields preserved
+      expect(response.body.name).toBe('Item To Complete');
+      expect(response.body.id).toBe(item.id);
+      expect(response.body).toHaveProperty('due_date');
+      expect(response.body).toHaveProperty('created_at');
     });
 
     it('should return 404 for a non-existent item', async () => {

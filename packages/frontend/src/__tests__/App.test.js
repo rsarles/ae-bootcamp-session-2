@@ -50,6 +50,14 @@ describe('App Component', () => {
   test('renders the header', async () => {
     await act(async () => { render(<App />); });
     expect(screen.getByText('To Do App')).toBeInTheDocument();
+    // Verify form structure present
+    expect(screen.getByPlaceholderText('Enter task name')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add Task' })).toBeInTheDocument();
+    // Verify main sections render
+    expect(screen.getByText('Tasks')).toBeInTheDocument();
+    // Verify filter controls present
+    expect(screen.getByText('Status')).toBeInTheDocument();
+    expect(screen.getByText('Due date')).toBeInTheDocument();
   });
 
   test('loads and displays items', async () => {
@@ -69,6 +77,9 @@ describe('App Component', () => {
     await waitFor(() => {
       expect(screen.getByText('2099-12-31')).toBeInTheDocument();
     });
+    // Verify due date is in the correct task item
+    const taskItem = screen.getByText('Test Item 2').closest('li');
+    expect(taskItem.textContent).toContain('2099-12-31');
   });
 
   test('adds a new item', async () => {
@@ -86,6 +97,14 @@ describe('App Component', () => {
     await waitFor(() => {
       expect(screen.getByText('New Test Item')).toBeInTheDocument();
     });
+    // Verify input cleared after submission
+    expect(input.value).toBe('');
+    // Verify original items still present (not replaced)
+    expect(screen.getByText('Test Item 1')).toBeInTheDocument();
+    expect(screen.getByText('Test Item 2')).toBeInTheDocument();
+    // Verify new task has proper structure
+    const newTask = screen.getByText('New Test Item').closest('li');
+    expect(newTask.querySelector('input[type="checkbox"]')).toBeInTheDocument();
   });
 
   test('enters and cancels edit mode', async () => {
@@ -103,8 +122,13 @@ describe('App Component', () => {
 
     await act(async () => { await user.click(screen.getByText('Cancel')); });
 
-    expect(screen.getByText('Test Item 2')).toBeInTheDocument();
+    // Verify edit form is completely gone
+    expect(screen.queryByDisplayValue('Test Item 2')).not.toBeInTheDocument();
     expect(screen.queryByText('Save')).not.toBeInTheDocument();
+    expect(screen.queryByText('Cancel')).not.toBeInTheDocument();
+    // Verify original data unchanged and still visible
+    expect(screen.getByText('Test Item 2')).toBeInTheDocument();
+    expect(screen.getByText('2099-12-31')).toBeInTheDocument();
   });
 
   test('saves an edited item', async () => {
@@ -127,6 +151,14 @@ describe('App Component', () => {
     await waitFor(() => {
       expect(screen.getByText('Renamed Item')).toBeInTheDocument();
     });
+    // Verify old name is completely gone
+    expect(screen.queryByText('Test Item 2')).not.toBeInTheDocument();
+    // Verify due date preserved (data integrity)
+    expect(screen.getByText('2099-12-31')).toBeInTheDocument();
+    // Verify edit form is closed
+    expect(screen.queryByDisplayValue('Renamed Item')).not.toBeInTheDocument();
+    // Verify other items still present
+    expect(screen.getByText('Test Item 1')).toBeInTheDocument();
   });
 
   test('toggles a task as completed', async () => {
@@ -136,11 +168,18 @@ describe('App Component', () => {
     await waitFor(() => expect(screen.getByText('Test Item 1')).toBeInTheDocument());
 
     const checkboxes = screen.getAllByRole('checkbox');
+    const initialChecked = checkboxes[0].checked;
+    
     await act(async () => { await user.click(checkboxes[0]); });
 
+    // Wait for the checkbox to be toggled
     await waitFor(() => {
-      expect(checkboxes[0]).toBeChecked();
+      expect(checkboxes[0].checked).not.toBe(initialChecked);
     });
+    
+    // Verify the checked state changed
+    expect(checkboxes[0]).toBeChecked();
+    expect(checkboxes[1]).not.toBeChecked();
   });
 
   test('filters by status: completed', async () => {
